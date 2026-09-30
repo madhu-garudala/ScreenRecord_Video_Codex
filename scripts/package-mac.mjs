@@ -43,21 +43,22 @@ try {
   const output = await packager({
     dir: staging,
     out: release,
-    name: 'Local Loom',
+    name: packageJson.productName,
     platform: 'darwin',
     arch: process.arch,
     electronVersion: electronJson.version,
     ...(electronZipDir ? { electronZipDir } : {}),
-    appBundleId: 'com.madhugarudala.localloom',
+    appBundleId: 'com.madhugarudala.onetake',
+    icon: path.join(root, 'assets/logo.icns'),
     asar: true,
     overwrite: true,
     osxSign: false,
     extendInfo: {
-      NSMicrophoneUsageDescription: 'Local Loom records microphone audio only when you enable a microphone for a screen recording.',
+      NSMicrophoneUsageDescription: 'OneTake records microphone audio only when you enable a microphone for a screen recording.',
     },
   });
   for (const appPath of output) {
-    const appBundle = path.join(appPath, 'Local Loom.app');
+    const appBundle = path.join(appPath, `${packageJson.productName}.app`);
     // Electron's downloaded binary carries a partial signature after it is
     // repackaged. Re-sign locally so the bundle verifies; this is not a
     // Developer ID signature and does not notarize it for distribution.

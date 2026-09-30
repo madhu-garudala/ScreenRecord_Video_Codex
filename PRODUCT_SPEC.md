@@ -1,12 +1,14 @@
 # Product specification
 
+This describes the intended product. For verified setup steps and the current Google Drive testing status, see [README.md](README.md).
+
 ## Goal and user
 
-Local Loom is a small macOS desktop recorder for one person who wants to capture a display or window, optionally include a microphone, save a playable file, or upload it to their own Google Drive and copy a sharing link. All recording and file operations run on the Mac. Only Google sign-in and Drive upload require the network.
+OneTake is a small macOS desktop recorder for one person who wants to capture a display or window, optionally include a microphone, save a playable file, or upload it to their own Google Drive and copy a sharing link. All recording and file operations run on the Mac. Only Google sign-in and Drive upload require the network.
 
 ## Main flows
 
-1. Launch the app. The home screen lists available displays/windows, a microphone choice including **Off**, Google connection status, and a sharing choice (**Private** by default; **Anyone with the link** is explicit).
+1. Launch the app. The home screen lists available displays/windows, a microphone choice including **Off**, and Google connection status. The sharing choice appears after a recording is ready; **Private** is the default.
 2. Select a source and press **Start recording**. The app counts down 3, 2, 1; then records. A compact control displays elapsed time and **Stop recording**.
 3. Stop. The app finalizes the file, releases capture devices, and shows a video preview, duration, and file size.
 4. Press **Save locally**. A native Save dialog proposes `Recording-YYYY-MM-DD-HH-MM-SS.webm`; the user can choose any writable location. Cancellation returns to preview.
@@ -29,7 +31,7 @@ Local Loom is a small macOS desktop recorder for one person who wants to capture
 
 ## Non-functional requirements
 
-- `npm install` and `npm run dev` launch the development app after ordinary Google configuration only for Drive features. Recording and local saving work without Google configuration.
+- `npm ci` and `npm run dev` launch the development app without Google configuration. Recording and local saving work without Google configuration.
 - One Electron app with React/TypeScript/Vite; no server, database, account store, analytics, telemetry, or background cloud job.
 - Electron renderer uses context isolation, no Node integration, and a narrow typed preload API. Main process validates IPC inputs and controls paths, OAuth, tokens, upload, and external URLs.
 - Recording data is written incrementally to a temporary file so a normal-length capture does not require keeping the entire video in renderer memory. The app must avoid silently dropping chunks under backpressure.

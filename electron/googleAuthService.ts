@@ -234,13 +234,13 @@ export class GoogleAuthService {
         }
         const receivedState = address.searchParams.get('state') ?? '';
         if (!matchesState(expectedState, receivedState)) {
-          response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Authorization response rejected. Return to Local Loom.');
+          response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Authorization response rejected. Return to OneTake.');
           finish(new Error('STATE_MISMATCH'));
           return;
         }
         const googleError = address.searchParams.get('error');
         const code = address.searchParams.get('code');
-        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end('<!doctype html><title>Local Loom</title><p>You can close this tab and return to Local Loom.</p>');
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end('<!doctype html><title>OneTake</title><p>You can close this tab and return to OneTake.</p>');
         if (googleError || !code) finish(new Error('AUTHORIZATION_DENIED'));
         else finish(undefined, { code, state: receivedState });
       });
@@ -268,8 +268,8 @@ export class GoogleAuthService {
 
 export function authErrorMessage(error: unknown): string {
   const code = error instanceof Error ? error.message : '';
-  if (code === 'NOT_CONFIGURED') return 'Google Drive is not configured yet. Add a Desktop OAuth client ID and restart Local Loom.';
-  if (code === 'STORAGE_UNAVAILABLE') return 'Secure token storage is unavailable on this Mac. Local Loom did not save Google credentials.';
+  if (code === 'NOT_CONFIGURED') return 'Google Drive is not configured yet. Add a Desktop OAuth client ID and restart OneTake.';
+  if (code === 'STORAGE_UNAVAILABLE') return 'Secure token storage is unavailable on this Mac. OneTake did not save Google credentials.';
   if (code === 'AUTH_BUSY') return 'A Google sign-in is already in progress.';
   if (code === 'CALLBACK_TIMEOUT') return 'Google sign-in timed out. Try connecting again.';
   if (code === 'AUTHORIZATION_DENIED') return 'Google sign-in was canceled or denied. You can try again.';

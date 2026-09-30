@@ -60,7 +60,7 @@ export function explainSaveError(error: unknown): string {
     ? String(error.code)
     : '';
   if (code === 'EACCES' || code === 'EPERM' || code === 'EROFS') {
-    return 'Local Loom could not write to that location. Choose a folder where you have permission to save.';
+    return 'OneTake could not write to that location. Choose a folder where you have permission to save.';
   }
   if (code === 'ENOSPC' || code === 'EDQUOT') {
     return 'There is not enough space to save this recording. Free some space and try again.';

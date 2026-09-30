@@ -1,5 +1,7 @@
 # Implementation plan
 
+Historical implementation plan. For current setup and validation status, see [README.md](README.md).
+
 ## Working agreement
 
 Sol owns architecture, milestone acceptance, code review, integration, security review, and final QA. Luna is the primary implementation engineer. Give Luna one milestone at a time with objective, architecture context, files to inspect, expected behavior, constraints, acceptance, and tests. After each milestone Sol inspects the diff, runs the stated checks, reviews cleanup/races/IPC/security, and sends corrective work to Luna before proceeding. Do not combine milestones to save turns. No feature creep.

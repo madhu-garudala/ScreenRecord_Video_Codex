@@ -3,6 +3,7 @@ import type { CaptureSource } from '../shared/sourceTypes';
 import type { MicrophonePermissionStatus } from '../shared/microphoneTypes';
 import type { GoogleAuthStatus } from '../shared/googleAuthTypes';
 import type { DriveSharingChoice, DriveUploadProgress, DriveUploadResult } from '../shared/googleDriveTypes';
+import logoUrl from './assets/logo.svg';
 
 type RecorderPhase = 'idle' | 'countdown' | 'starting' | 'recording' | 'processing' | 'preview' | 'error';
 type PreviewPlaybackState = 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
@@ -95,6 +96,11 @@ function DriveGlyph() {
 }
 
 export default function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = window.localStorage.getItem('local-loom-theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const [sources, setSources] = useState<CaptureSource[]>([]);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
@@ -139,6 +145,11 @@ export default function App() {
   const driveSharingLocked = useRef(false);
   const driveLinkActionLocked = useRef(false);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('local-loom-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (phase !== 'preview' || !preview) return;
@@ -209,7 +220,7 @@ export default function App() {
     void window.localLoom.getGoogleAuthStatus().then((status) => {
       if (mounted) setGoogleAuthStatus(status);
     }).catch(() => {
-      if (mounted) setGoogleAuthError('Google Drive status is unavailable. Restart Local Loom and try again.');
+      if (mounted) setGoogleAuthError('Google Drive status is unavailable. Restart OneTake and try again.');
     });
     return () => { mounted = false; };
   }, []);
@@ -436,7 +447,7 @@ export default function App() {
         } catch (error) {
           const name = error instanceof Error ? error.name : '';
           if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-            throw new Error('Microphone access was denied. Choose Off or allow Local Loom in System Settings → Privacy & Security → Microphone.');
+            throw new Error('Microphone access was denied. Choose Off or allow OneTake in System Settings → Privacy & Security → Microphone.');
           }
           if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'DevicesNotFoundError') {
             throw new Error('The selected microphone is unavailable. Refresh the microphone list or choose Off.');
@@ -519,7 +530,7 @@ export default function App() {
       }
       const name = error instanceof Error ? error.name : '';
       const message = name === 'NotAllowedError' || name === 'PermissionDeniedError'
-        ? 'Screen access was denied. Allow Local Loom in System Settings → Privacy & Security → Screen & System Audio Recording, then restart the app.'
+        ? 'Screen access was denied. Allow OneTake in System Settings → Privacy & Security → Screen & System Audio Recording, then restart the app.'
         : error instanceof Error ? error.message : 'Could not start screen capture. Refresh the source list and try again.';
       setCaptureError(message);
       if (/microphone/i.test(message)) {
@@ -809,21 +820,25 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#home" aria-label="Local Loom home">
-          <span className="brand-mark"><span /></span>
-          <span>local loom</span>
-        </a>
+        <div className="brand" aria-label="OneTake">
+          <span className="brand-mark" aria-hidden="true">
+            <img src={logoUrl} alt="" />
+          </span>
+          <span>OneTake</span>
+        </div>
         <div className="topbar-right">
-          <span className="local-badge"><span className="status-dot" /> Saved on this Mac</span>
-          <button className="avatar" aria-label="Account menu">M</button>
+          <button className="theme-toggle" type="button" aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}>
+            <span aria-hidden="true">{theme === 'light' ? '☾' : '☀'}</span>
+          </button>
+          <span className="local-badge"><span className="status-dot" /> Private by default</span>
         </div>
       </header>
 
       <section className="workspace">
         <div className="welcome">
-          <div className="eyebrow"><span className="eyebrow-rule" /> YOUR PERSONAL STUDIO</div>
-          <h1>Make it easy<br />to <em>show</em> what you mean.</h1>
-          <p className="intro">A little screen recording goes a long way.<br />Choose what to capture and you’re ready.</p>
+          <div className="eyebrow"><span className="eyebrow-rule" /> YOUR RECORDING STUDIO</div>
+          <h1>Show it in a <em>moment.</em></h1>
+          <p className="intro">Capture your screen, add your voice if you like, and share when you’re ready.</p>
         </div>
 
         {phase === 'preview' && preview ? (
@@ -945,7 +960,7 @@ export default function App() {
               <span className="step-label">LET’S GET SET UP</span>
               <h2 id="setup-title">Your recording</h2>
             </div>
-            <span className="step-count">01 <i /> 03</span>
+            <span className="step-count">NEW RECORDING</span>
           </div>
 
           <div className="source-picker-heading">
@@ -1086,7 +1101,7 @@ export default function App() {
       </section>
 
       <footer className="footer">
-        <span>LOCAL LOOM <b>·</b> A QUIETER WAY TO COMMUNICATE</span>
+        <span>ONETAKE <b>·</b> MADE FOR THE MOMENT</span>
         <span className="version">v{window.localLoom.appVersion}</span>
       </footer>
     </main>

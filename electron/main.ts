@@ -13,7 +13,7 @@ import {
   type IpcMainInvokeEvent,
   type DisplayMediaRequestHandlerHandlerRequest,
 } from 'electron';
-import { createReadStream } from 'node:fs';
+import { createReadStream, mkdirSync } from 'node:fs';
 import { readFile as readFileAsync } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import path from 'node:path';
@@ -72,6 +72,12 @@ protocol.registerSchemesAsPrivileged([{
   privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, codeCache: false },
 }]);
 
+// Keep packaged OAuth data from before the rename; development uses its own profile.
+const userDataDirectory = app.commandLine.getSwitchValue('user-data-dir')
+  || path.join(app.getPath('appData'), 'local-loom');
+mkdirSync(userDataDirectory, { recursive: true, mode: 0o700 });
+app.setPath('userData', userDataDirectory);
+
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) app.quit();
 
@@ -95,7 +101,7 @@ function microphonePermissionResult(granted: boolean): MicrophonePermissionResul
   const status = granted ? 'granted' : readMicrophonePermission();
   if (status === 'granted') return { ok: true, status };
   const message = status === 'denied' || status === 'restricted'
-    ? 'Microphone access is blocked. Choose Off or allow Local Loom in System Settings → Privacy & Security → Microphone.'
+    ? 'Microphone access is blocked. Choose Off or allow OneTake in System Settings → Privacy & Security → Microphone.'
     : 'Microphone access was not granted. Choose Off or try enabling the microphone again.';
   return { ok: false, status, message };
 }
@@ -171,7 +177,7 @@ ipcMain.handle(LIST_SOURCES_CHANNEL, async (event): Promise<SourceListResult> =>
         selectedSourceId: null,
         screenPermission,
         error: 'screen-permission',
-        message: 'Screen access is blocked. Allow Local Loom in System Settings → Privacy & Security → Screen & System Audio Recording, then restart the app.',
+        message: 'Screen access is blocked. Allow OneTake in System Settings → Privacy & Security → Screen & System Audio Recording, then restart the app.',
       };
     }
 
@@ -186,7 +192,7 @@ ipcMain.handle(LIST_SOURCES_CHANNEL, async (event): Promise<SourceListResult> =>
       screenPermission,
       error: blocked ? 'screen-permission' : 'enumeration-failed',
       message: blocked
-        ? 'Screen access is blocked. Allow Local Loom in System Settings → Privacy & Security → Screen & System Audio Recording, then restart the app.'
+        ? 'Screen access is blocked. Allow OneTake in System Settings → Privacy & Security → Screen & System Audio Recording, then restart the app.'
         : 'Could not load screens and windows. Try refreshing the list.',
     };
   }
@@ -406,7 +412,7 @@ ipcMain.handle(GOOGLE_AUTH_STATUS_CHANNEL, async (event): Promise<GoogleAuthStat
 
 ipcMain.handle(GOOGLE_AUTH_CONNECT_CHANNEL, async (event): Promise<GoogleAuthResult> => {
   assertTrustedRenderer(event);
-  if (!googleAuthService) return { ok: false, error: 'not-configured', message: 'Google Drive is not configured yet. Add a Desktop OAuth client ID and restart Local Loom.', status: { configured: false, connected: false, secureStorageAvailable: safeStorage.isEncryptionAvailable() } };
+  if (!googleAuthService) return { ok: false, error: 'not-configured', message: 'Google Drive is not configured yet. Add a Desktop OAuth client ID and restart OneTake.', status: { configured: false, connected: false, secureStorageAvailable: safeStorage.isEncryptionAvailable() } };
   try {
     return { ok: true, status: await googleAuthService.connect() };
   } catch (error) {
@@ -715,7 +721,7 @@ function createWindow(): void {
     minWidth: 820,
     minHeight: 640,
     backgroundColor: '#f7f7f4',
-    title: 'Local Loom',
+    title: 'OneTake',
     webPreferences: {
       preload: path.join(currentDirectory, 'preload.js'),
       contextIsolation: true,
@@ -757,7 +763,7 @@ app.whenReady().then(async () => {
   );
   googleDriveService = new GoogleDriveService(googleAuthService);
   return recordingStore.cleanupOrphanedFiles().catch(() => {
-    console.warn('Could not remove stale Local Loom temporary recordings.');
+    console.warn('Could not remove stale OneTake temporary recordings.');
   });
 }).then(() => {
   if (!hasSingleInstanceLock) return;

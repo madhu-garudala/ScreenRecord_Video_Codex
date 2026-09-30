@@ -1,5 +1,7 @@
 # Architecture and decisions
 
+For current clone, build, and permission steps, see [README.md](README.md).
+
 ## Decision summary
 
 | Decision | Choice and reason |
