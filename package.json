@@ -1,0 +1,31 @@
+{
+  "name": "local-loom",
+  "productName": "Local Loom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local desktop screen recorder",
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "test": "tsc -p tsconfig.electron.json && node --test tests/*.test.mjs",
+    "build": "npm run typecheck && vite build && tsc -p tsconfig.electron.json",
+    "package:mac": "npm run build && node scripts/package-mac.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "electron": "^44.5.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.1"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "electron@44.5.0": true,
+    "fsevents@2.3.3": true
+  }
+}
