@@ -31,7 +31,9 @@ The development app uses `~/Library/Application Support/onetake-dev` for its pro
 npm run lint
 npm test
 npm run package:mac
-open "release/OneTake-darwin-$(node -p 'process.arch')/OneTake.app"
+mkdir -p "$HOME/Applications"
+ditto "release/OneTake-darwin-$(node -p 'process.arch')/OneTake.app" "$HOME/Applications/OneTake.app"
+open "$HOME/Applications/OneTake.app"
 ```
 
 `npm run package:mac` runs the type checks and build, then packages for the architecture of the current Node process (`arm64` or `x64`). The output is `release/OneTake-darwin-<arch>/OneTake.app`. It includes only compiled app files. Electron is taken from its local cache or downloaded if needed. The app is ad hoc signed for local use; it is not Developer ID signed or notarized for distribution to other Macs.
@@ -39,6 +41,8 @@ open "release/OneTake-darwin-$(node -p 'process.arch')/OneTake.app"
 The clean install and package flow has been verified on Apple Silicon. The Intel (`x64`) path is configured but has not been run on an Intel Mac yet.
 
 The packaged app has bundle ID `com.madhugarudala.onetake`. macOS treats it separately from development Electron and earlier builds, so grant screen and microphone permissions again if prompted. An earlier permission entry may remain in System Settings.
+
+If OneTake is missing from **System Settings → Privacy & Security → Screen & System Audio Recording**, click **+** under the app list, authenticate with Touch ID or your Mac password, and select `~/Applications/OneTake.app`. In the file picker, press **Command-Shift-G** and paste that path if the app is hard to find. Turn on its switch, then quit and reopen OneTake.
 
 ## Optional Google Drive setup
 
@@ -71,6 +75,7 @@ React, TypeScript, and Vite run in an Electron renderer with isolation, sandboxi
 | Symptom | Action |
 | --- | --- |
 | No capture source or screen access denied | Check Screen & System Audio Recording permission, restart the app, refresh sources. |
+| OneTake is absent from Screen & System Audio Recording | Install the packaged app in `~/Applications`, use **+** to select `~/Applications/OneTake.app`, enable it, and restart. |
 | Microphone absent or denied | Choose Off, reconnect the device, or grant permission and refresh inputs. |
 | WebM will not open in QuickTime | Play it in OneTake, Chrome, or VLC. |
 | Drive says not configured | Add a Desktop OAuth client ID as above and restart. |
