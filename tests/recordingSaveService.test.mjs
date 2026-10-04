@@ -20,7 +20,7 @@ test('destination always has a WebM suffix without changing existing casing', ()
 });
 
 test('atomic copy preserves source and publishes a byte-identical finalized file', async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'local-loom-save-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'onetake-save-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const source = path.join(directory, 'source.webm');
   const destination = path.join(directory, 'folder', 'saved.webm');
@@ -35,7 +35,7 @@ test('atomic copy preserves source and publishes a byte-identical finalized file
 });
 
 test('failed copy leaves a preexisting destination untouched and removes staging file', async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'local-loom-save-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'onetake-save-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const source = path.join(directory, 'source.webm');
   const destination = path.join(directory, 'saved.webm');
@@ -49,7 +49,7 @@ test('failed copy leaves a preexisting destination untouched and removes staging
 });
 
 test('extension-adjusted destination refuses overwrite when the final WebM path exists', async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'local-loom-save-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'onetake-save-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const source = path.join(directory, 'source.webm');
   const finalDestination = path.join(directory, 'Recording.webm');

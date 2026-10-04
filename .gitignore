@@ -3,7 +3,7 @@ dist/
 dist-electron/
 .packaging/
 release/
-Local-Loom-source.tar.gz
+*-source.tar.gz
 .DS_Store
 .env
 google-oauth-client*.json

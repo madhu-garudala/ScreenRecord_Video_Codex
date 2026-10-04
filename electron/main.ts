@@ -37,6 +37,8 @@ import { authErrorMessage, GoogleAuthService } from './googleAuthService';
 import type { GoogleAuthResult, GoogleAuthStatus } from '../shared/googleAuthTypes';
 import type { DriveLinkActionResult, DriveShareResult, DriveUploadProgress, DriveUploadResponse } from '../shared/googleDriveTypes';
 import { DriveShareError, DriveUploadError, GoogleDriveService, isValidDriveWebViewLink } from './googleDriveService';
+import { migrateUserDataDirectory } from './userDataMigration';
+import { createCaptureCleanup } from './captureCleanup';
 import type { MicrophonePermissionResult, MicrophonePermissionStatus } from '../shared/microphoneTypes';
 
 const currentDirectory = __dirname;
@@ -63,18 +65,18 @@ let mainWindow: BrowserWindow | null = null;
 let selectedSourceId: string | null = null;
 let activeCapture: { recordingId: string; sourceId: string; state: 'awaiting-stream' | 'stream-granted' | 'recording' } | null = null;
 let captureStartPending = false;
-let captureCleanupPromise: Promise<void> | null = null;
+const captureCleanups = new Map<string, Promise<void>>();
 let googleAuthService: GoogleAuthService | null = null;
 let googleDriveService: GoogleDriveService | null = null;
 
 protocol.registerSchemesAsPrivileged([{
-  scheme: 'local-loom',
+  scheme: 'onetake',
   privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, codeCache: false },
 }]);
 
-// Keep packaged OAuth data from before the rename; development uses its own profile.
-const userDataDirectory = app.commandLine.getSwitchValue('user-data-dir')
-  || path.join(app.getPath('appData'), 'local-loom');
+const explicitUserDataDirectory = app.commandLine.getSwitchValue('user-data-dir');
+const userDataDirectory = explicitUserDataDirectory || path.join(app.getPath('appData'), 'OneTake');
+if (!explicitUserDataDirectory) migrateUserDataDirectory(app.getPath('appData'), userDataDirectory);
 mkdirSync(userDataDirectory, { recursive: true, mode: 0o700 });
 app.setPath('userData', userDataDirectory);
 
@@ -255,7 +257,7 @@ ipcMain.handle(BEGIN_RECORDING_CHANNEL, async (event): Promise<BeginRecordingRes
 
   captureStartPending = true;
   try {
-    if (captureCleanupPromise !== null) await captureCleanupPromise.catch(() => undefined);
+    await Promise.all([...captureCleanups.values()].map((cleanup) => cleanup.catch(() => undefined)));
     if (activeCapture !== null) {
       return { ok: false, error: 'recording-active', message: 'A recording is already being started.' };
     }
@@ -631,7 +633,7 @@ async function routeDisplayCaptureRequest(
 }
 
 function installPreviewProtocol(): void {
-  protocol.handle('local-loom', async (request) => {
+  protocol.handle('onetake', async (request) => {
     try {
       const url = new URL(request.url);
       const recordingId = url.hostname === 'recording' ? url.pathname.slice(1) : '';
@@ -673,13 +675,7 @@ function installPreviewProtocol(): void {
 
 function abortCapture(recordingId: string): Promise<void> {
   if (activeCapture?.recordingId === recordingId) activeCapture = null;
-  if (captureCleanupPromise !== null) return captureCleanupPromise;
-
-  const cleanup = recordingStore.abort(recordingId).finally(() => {
-    if (captureCleanupPromise === cleanup) captureCleanupPromise = null;
-  });
-  captureCleanupPromise = cleanup;
-  return cleanup;
+  return createCaptureCleanup(captureCleanups, recordingId, (id) => recordingStore.abort(id));
 }
 
 function parseByteRange(value: string, size: number): { start: number; end: number } | null {

@@ -1,6 +1,6 @@
 export {};
 
-import type { CaptureSource, SelectSourceResult, SourceListResult } from '../../shared/sourceTypes';
+import type { SelectSourceResult, SourceListResult } from '../../shared/sourceTypes';
 import type {
   AppendChunkResult,
   BeginRecordingResult,
@@ -14,7 +14,7 @@ import type { DriveLinkActionResult, DriveShareResult, DriveSharingChoice, Drive
 
 declare global {
   interface Window {
-    localLoom: Readonly<{
+    oneTake: Readonly<{
       appVersion: string;
       runtime: 'desktop';
       listSources: () => Promise<SourceListResult>;

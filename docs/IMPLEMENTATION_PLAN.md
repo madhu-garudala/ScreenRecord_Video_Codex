@@ -1,6 +1,6 @@
 # Implementation plan
 
-Historical implementation plan. For current setup and validation status, see [README.md](README.md).
+Historical implementation plan. For current setup and validation status, see [README.md](../README.md).
 
 ## Working agreement
 

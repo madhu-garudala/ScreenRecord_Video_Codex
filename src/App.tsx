@@ -4,6 +4,8 @@ import type { MicrophonePermissionStatus } from '../shared/microphoneTypes';
 import type { GoogleAuthStatus } from '../shared/googleAuthTypes';
 import type { DriveSharingChoice, DriveUploadProgress, DriveUploadResult } from '../shared/googleDriveTypes';
 import logoUrl from './assets/logo.svg';
+import { readTheme, saveTheme } from './themeStorage';
+/* eslint-disable react-hooks/set-state-in-effect -- Initialization and preview transitions reset related UI state. */
 
 type RecorderPhase = 'idle' | 'countdown' | 'starting' | 'recording' | 'processing' | 'preview' | 'error';
 type PreviewPlaybackState = 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
@@ -16,6 +18,7 @@ interface CaptureSession {
   writeTail: Promise<void>;
   pendingChunks: number;
   failure: string | null;
+  warning: string | null;
   cancelled: boolean;
   startedAt: number | null;
   stoppedAt: number | null;
@@ -30,6 +33,7 @@ interface PreviewDetails {
   sizeBytes: number;
   durationMs: number;
   audioIncluded: boolean;
+  warning: string | null;
 }
 
 interface MicrophoneInput {
@@ -96,11 +100,7 @@ function DriveGlyph() {
 }
 
 export default function App() {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = window.localStorage.getItem('local-loom-theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  const [theme, setTheme] = useState<'light' | 'dark'>(readTheme);
   const [sources, setSources] = useState<CaptureSource[]>([]);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
@@ -148,7 +148,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem('local-loom-theme', theme);
+    saveTheme(theme);
   }, [theme]);
 
   useEffect(() => {
@@ -164,14 +164,14 @@ export default function App() {
     setDriveSharingChoice('private');
     setIsSharingDrive(false);
     setDriveLinkMessage(null);
-  }, [phase, preview?.previewUrl]);
+  }, [phase, preview?.previewUrl]); // eslint-disable-line react-hooks/exhaustive-deps -- Metadata updates must not reset preview actions.
 
   useEffect(() => {
     if (!preview) return;
-    return window.localLoom.onDriveUploadProgress((progress) => {
+    return window.oneTake.onDriveUploadProgress((progress) => {
       if (progress.recordingId === preview.recordingId) setDriveUploadProgress(progress);
     });
-  }, [preview?.recordingId]);
+  }, [preview?.recordingId]); // eslint-disable-line react-hooks/exhaustive-deps -- Subscribe only when the recording changes.
 
   const refreshMicrophones = useCallback(async (selectFirst = false) => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -196,7 +196,7 @@ export default function App() {
     setIsRefreshing(true);
     setSourceError(null);
     try {
-      const result = await window.localLoom.listSources();
+      const result = await window.oneTake.listSources();
       if (currentRequest !== requestNumber.current) return;
       setSources(result.sources);
       setSelectedSourceId(result.selectedSourceId);
@@ -217,7 +217,7 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true;
-    void window.localLoom.getGoogleAuthStatus().then((status) => {
+    void window.oneTake.getGoogleAuthStatus().then((status) => {
       if (mounted) setGoogleAuthStatus(status);
     }).catch(() => {
       if (mounted) setGoogleAuthError('Google Drive status is unavailable. Restart OneTake and try again.');
@@ -230,7 +230,7 @@ export default function App() {
     setGoogleAuthBusy(true);
     setGoogleAuthError(null);
     try {
-      const result = await window.localLoom.connectGoogle();
+      const result = await window.oneTake.connectGoogle();
       setGoogleAuthStatus(result.status);
       if (!result.ok) setGoogleAuthError(result.message);
     } catch {
@@ -245,7 +245,7 @@ export default function App() {
     setGoogleAuthBusy(true);
     setGoogleAuthError(null);
     try {
-      setGoogleAuthStatus(await window.localLoom.disconnectGoogle());
+      setGoogleAuthStatus(await window.oneTake.disconnectGoogle());
     } catch {
       setGoogleAuthError('Google credentials could not be removed. Try again.');
     } finally {
@@ -255,7 +255,7 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true;
-    void window.localLoom.getMicrophonePermission().then(async (result) => {
+    void window.oneTake.getMicrophonePermission().then(async (result) => {
       if (!mounted) return;
       setMicrophonePermission(result.status);
       if (result.ok) await refreshMicrophones();
@@ -289,7 +289,7 @@ export default function App() {
     session.cancelled = true;
     stopTracks(session.streams);
     sessionRef.current = null;
-    void window.localLoom.abortRecording(session.recordingId);
+    void window.oneTake.abortRecording(session.recordingId);
   }, []);
 
   const finishCapture = (session: CaptureSession): Promise<void> => {
@@ -303,7 +303,7 @@ export default function App() {
         if (!recorder) {
           if (!session.cancelled) throw new Error('Screen capture did not start.');
           stopTracks(session.streams);
-          await window.localLoom.abortRecording(session.recordingId);
+          await window.oneTake.abortRecording(session.recordingId);
           if (sessionRef.current === session) sessionRef.current = null;
           setPhase('idle');
           return;
@@ -322,7 +322,7 @@ export default function App() {
         await session.writeTail;
 
         if (session.cancelled) {
-          await window.localLoom.abortRecording(session.recordingId);
+          await window.oneTake.abortRecording(session.recordingId);
           if (sessionRef.current === session) sessionRef.current = null;
           setCaptureError(null);
           setPhase('idle');
@@ -330,7 +330,7 @@ export default function App() {
         }
         if (session.failure) throw new Error(session.failure);
 
-        const result = await window.localLoom.finalizeRecording(session.recordingId);
+        const result = await window.oneTake.finalizeRecording(session.recordingId);
         if (!result.ok) throw new Error(result.message);
         const durationMs = session.startedAt === null ? 0 : Math.max(0, (session.stoppedAt ?? performance.now()) - session.startedAt);
         sessionRef.current = null;
@@ -341,11 +341,12 @@ export default function App() {
           sizeBytes: result.sizeBytes,
           durationMs,
           audioIncluded: session.audioIncluded,
+          warning: session.warning,
         });
         setPhase('preview');
       } catch (error) {
         stopTracks(session.streams);
-        await window.localLoom.abortRecording(session.recordingId).catch(() => undefined);
+        await window.oneTake.abortRecording(session.recordingId).catch(() => undefined);
         if (sessionRef.current === session) sessionRef.current = null;
         if (session.cancelled) {
           setCaptureError(null);
@@ -355,7 +356,7 @@ export default function App() {
         setCaptureError(error instanceof Error ? error.message : 'The recording could not be completed. Try again.');
         if (error instanceof Error && /microphone/i.test(error.message)) {
           setMicrophoneError(error.message);
-          void window.localLoom.getMicrophonePermission().then((permission) => setMicrophonePermission(permission.status));
+          void window.oneTake.getMicrophonePermission().then((permission) => setMicrophonePermission(permission.status));
         }
         setPhase('error');
       } finally {
@@ -368,17 +369,16 @@ export default function App() {
 
   const queueCaptureChunk = (session: CaptureSession, blob: Blob) => {
     if (blob.size === 0 || session.cancelled) return;
-    if (session.pendingChunks >= MAX_PENDING_CHUNKS) {
-      session.failure = 'The recording writer fell behind. The incomplete video was discarded; try again.';
-      void finishCapture(session);
-      return;
+    const shouldStopForBackpressure = session.pendingChunks >= MAX_PENDING_CHUNKS && !session.stopPromise;
+    if (shouldStopForBackpressure) {
+      session.warning = 'Recording stopped early because disk writing fell behind. The captured video is available to save.';
     }
 
     session.pendingChunks += 1;
     const write = session.writeTail.then(async () => {
       if (session.failure) throw new Error(session.failure);
       const chunk = await blob.arrayBuffer();
-      const result = await window.localLoom.appendRecordingChunk(session.recordingId, chunk);
+      const result = await window.oneTake.appendRecordingChunk(session.recordingId, chunk);
       if (!result.ok) throw new Error(result.message);
     }).finally(() => {
       session.pendingChunks -= 1;
@@ -388,6 +388,7 @@ export default function App() {
       session.failure ??= error instanceof Error ? error.message : 'A video chunk could not be written.';
       void finishCapture(session);
     });
+    if (shouldStopForBackpressure) void finishCapture(session);
   };
 
   const beginCapture = async () => {
@@ -395,7 +396,7 @@ export default function App() {
     setCaptureError(null);
     setElapsedMs(0);
     try {
-      const begun = await window.localLoom.beginRecording();
+      const begun = await window.oneTake.beginRecording();
       if (!begun.ok) {
         if (begun.error === 'source-unavailable') await refreshSources();
         throw new Error(begun.message);
@@ -411,6 +412,7 @@ export default function App() {
         writeTail: Promise.resolve(),
         pendingChunks: 0,
         failure: null,
+        warning: null,
         cancelled: false,
         startedAt: null,
         stoppedAt: null,
@@ -427,7 +429,7 @@ export default function App() {
       session.streams.push(stream);
       if (session.cancelled) {
         stopTracks(session.streams);
-        await window.localLoom.abortRecording(session.recordingId);
+        await window.oneTake.abortRecording(session.recordingId);
         if (sessionRef.current === session) sessionRef.current = null;
         setPhase('idle');
         actionLocked.current = false;
@@ -447,20 +449,20 @@ export default function App() {
         } catch (error) {
           const name = error instanceof Error ? error.name : '';
           if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-            throw new Error('Microphone access was denied. Choose Off or allow OneTake in System Settings → Privacy & Security → Microphone.');
+            throw new Error('Microphone access was denied. Choose Off or allow OneTake in System Settings → Privacy & Security → Microphone.', { cause: error });
           }
           if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'DevicesNotFoundError') {
-            throw new Error('The selected microphone is unavailable. Refresh the microphone list or choose Off.');
+            throw new Error('The selected microphone is unavailable. Refresh the microphone list or choose Off.', { cause: error });
           }
           if (name === 'NotReadableError' || name === 'TrackStartError') {
-            throw new Error('The selected microphone could not start. Close other apps using it, or choose Off.');
+            throw new Error('The selected microphone could not start. Close other apps using it, or choose Off.', { cause: error });
           }
-          throw new Error('Could not start the selected microphone. Choose Off or try another input.');
+          throw new Error('Could not start the selected microphone. Choose Off or try another input.', { cause: error });
         }
         session.streams.push(microphoneStream);
         if (session.cancelled) {
           stopTracks(session.streams);
-          await window.localLoom.abortRecording(session.recordingId);
+          await window.oneTake.abortRecording(session.recordingId);
           if (sessionRef.current === session) sessionRef.current = null;
           setPhase('idle');
           actionLocked.current = false;
@@ -519,7 +521,7 @@ export default function App() {
       const session = sessionRef.current;
       if (session) {
         stopTracks(session.streams);
-        await window.localLoom.abortRecording(session.recordingId).catch(() => undefined);
+        await window.oneTake.abortRecording(session.recordingId).catch(() => undefined);
         if (sessionRef.current === session) sessionRef.current = null;
       }
       if (session?.cancelled) {
@@ -535,7 +537,7 @@ export default function App() {
       setCaptureError(message);
       if (/microphone/i.test(message)) {
         setMicrophoneError(message);
-        void window.localLoom.getMicrophonePermission().then((permission) => setMicrophonePermission(permission.status));
+        void window.oneTake.getMicrophonePermission().then((permission) => setMicrophonePermission(permission.status));
       }
       setPhase('error');
       actionLocked.current = false;
@@ -576,7 +578,7 @@ export default function App() {
     else {
       stopTracks(session.streams);
       setCaptureError('Capture start cancelled. If a macOS permission prompt is open, dismiss it to return home.');
-      void window.localLoom.abortRecording(session.recordingId);
+      void window.oneTake.abortRecording(session.recordingId);
     }
   };
 
@@ -593,7 +595,7 @@ export default function App() {
 
     setIsRequestingMicrophone(true);
     try {
-      const permission = await window.localLoom.requestMicrophoneAccess();
+      const permission = await window.oneTake.requestMicrophoneAccess();
       setMicrophonePermission(permission.status);
       if (!permission.ok) {
         setSelectedMicrophoneId(null);
@@ -657,7 +659,7 @@ export default function App() {
     setPreviewActionError(null);
     try {
       previewVideoRef.current?.pause();
-      const result = await window.localLoom.discardRecording(preview.recordingId);
+      const result = await window.oneTake.discardRecording(preview.recordingId);
       if (!result.ok) {
         setPreviewActionError(result.message);
         return;
@@ -686,7 +688,7 @@ export default function App() {
     setIsSavingRecording(true);
     setSaveError(null);
     try {
-      const result = await window.localLoom.saveRecording(preview.recordingId);
+      const result = await window.oneTake.saveRecording(preview.recordingId);
       if (!result.ok) {
         setSaveError(result.message);
         return;
@@ -712,7 +714,7 @@ export default function App() {
       if (!googleAuthStatus?.connected) {
         setIsConnectingForUpload(true);
         setGoogleAuthBusy(true);
-        const connection = await window.localLoom.connectGoogle();
+        const connection = await window.oneTake.connectGoogle();
         setGoogleAuthStatus(connection.status);
         setGoogleAuthBusy(false);
         setIsConnectingForUpload(false);
@@ -721,14 +723,14 @@ export default function App() {
           return;
         }
       }
-      const result = await window.localLoom.uploadRecordingToDrive(preview.recordingId, driveSharingChoice);
+      const result = await window.oneTake.uploadRecordingToDrive(preview.recordingId, driveSharingChoice);
       if (!result.ok) {
         setDriveUploadError(result.message);
         if (result.uploaded) setDriveUploadResult(result.uploaded);
         if (result.error === 'auth-required') {
-          setGoogleAuthStatus(await window.localLoom.getGoogleAuthStatus());
+          setGoogleAuthStatus(await window.oneTake.getGoogleAuthStatus());
         } else if (result.error === 'sharing-failed') {
-          setGoogleAuthStatus(await window.localLoom.getGoogleAuthStatus());
+          setGoogleAuthStatus(await window.oneTake.getGoogleAuthStatus());
         }
         return;
       }
@@ -753,7 +755,7 @@ export default function App() {
     try {
       if (!googleAuthStatus?.connected) {
         setGoogleAuthBusy(true);
-        const connection = await window.localLoom.connectGoogle();
+        const connection = await window.oneTake.connectGoogle();
         setGoogleAuthStatus(connection.status);
         setGoogleAuthBusy(false);
         if (!connection.ok) {
@@ -761,7 +763,7 @@ export default function App() {
           return;
         }
       }
-      const result = await window.localLoom.enableAnyoneDriveLink(preview.recordingId);
+      const result = await window.oneTake.enableAnyoneDriveLink(preview.recordingId);
       if (result.ok) setDriveUploadResult(result.result);
       else {
         if (result.uploaded) setDriveUploadResult(result.uploaded);
@@ -776,15 +778,15 @@ export default function App() {
     }
   };
 
-  const useDriveLinkAction = async (action: 'copy' | 'open') => {
+  const runDriveLinkAction = async (action: 'copy' | 'open') => {
     if (!preview || !driveUploadResult || driveLinkActionLocked.current) return;
     driveLinkActionLocked.current = true;
     setDriveLinkBusy(true);
     setDriveLinkMessage(null);
     try {
       const result = action === 'copy'
-        ? await window.localLoom.copyDriveLink(preview.recordingId)
-        : await window.localLoom.openDriveLink(preview.recordingId);
+        ? await window.oneTake.copyDriveLink(preview.recordingId)
+        : await window.oneTake.openDriveLink(preview.recordingId);
       if (!result.ok) setDriveLinkMessage(result.message);
       else setDriveLinkMessage(action === 'copy' ? 'Drive link copied.' : 'Opened Google Drive in your browser.');
     } catch {
@@ -799,7 +801,7 @@ export default function App() {
     setIsSelecting(true);
     setSourceError(null);
     try {
-      const result = await window.localLoom.selectSource(sourceId);
+      const result = await window.oneTake.selectSource(sourceId);
       if (result.ok) {
         setSelectedSourceId(result.selectedSourceId);
         return;
@@ -891,6 +893,7 @@ export default function App() {
               <span><small>FILE SIZE</small><strong>{formatBytes(preview.sizeBytes)}</strong></span>
               <span className="format-chip">{preview.audioIncluded ? 'WEBM · MIC AUDIO' : 'WEBM · VIDEO ONLY'}</span>
             </div>
+            {preview.warning && <p className="preview-action-error" role="status">{preview.warning}</p>}
             <fieldset className="drive-sharing-picker" disabled={Boolean(driveUploadResult) || isUploadingDrive || isSharingDrive}>
               <legend>Link access</legend>
               <label>
@@ -929,8 +932,8 @@ export default function App() {
                   </button>
                 )}
                 <div className="drive-link-actions">
-                  <button className="quiet-action" disabled={driveLinkBusy} onClick={() => void useDriveLinkAction('copy')}>Copy link</button>
-                  <button className="quiet-action" disabled={driveLinkBusy} onClick={() => void useDriveLinkAction('open')}>Open in Google Drive</button>
+                  <button className="quiet-action" disabled={driveLinkBusy} onClick={() => void runDriveLinkAction('copy')}>Copy link</button>
+                  <button className="quiet-action" disabled={driveLinkBusy} onClick={() => void runDriveLinkAction('open')}>Open in Google Drive</button>
                 </div>
                 {driveLinkMessage && <small className="drive-link-message" role="status">{driveLinkMessage}</small>}
               </div>
@@ -1102,7 +1105,7 @@ export default function App() {
 
       <footer className="footer">
         <span>ONETAKE <b>·</b> MADE FOR THE MOMENT</span>
-        <span className="version">v{window.localLoom.appVersion}</span>
+        <span className="version">v{window.oneTake.appVersion}</span>
       </footer>
     </main>
   );

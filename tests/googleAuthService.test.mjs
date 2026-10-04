@@ -48,7 +48,7 @@ test('PKCE challenge is S256 and OAuth state is high entropy', () => {
 });
 
 test('connect uses only drive.file and persists encrypted refresh token for later refresh', async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'local-loom-auth-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'onetake-auth-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const tokenPath = path.join(directory, 'refresh.json');
   const secureStorage = createSecureStorage();
@@ -112,7 +112,7 @@ test('browser launch failure closes the callback listener and settles its promis
 });
 
 test('invalid_grant clears encrypted credentials and reports reconnect state', async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'local-loom-auth-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'onetake-auth-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const tokenPath = path.join(directory, 'refresh.json');
   const secureStorage = createSecureStorage();
@@ -124,7 +124,7 @@ test('invalid_grant clears encrypted credentials and reports reconnect state', a
 });
 
 test('stored credentials do not report connected or refresh without a configured client ID', async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'local-loom-auth-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'onetake-auth-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const tokenPath = path.join(directory, 'refresh.json');
   const secureStorage = createSecureStorage();

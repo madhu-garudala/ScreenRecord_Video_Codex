@@ -50,4 +50,4 @@ const api = Object.freeze({
   },
 });
 
-contextBridge.exposeInMainWorld('localLoom', api);
+contextBridge.exposeInMainWorld('oneTake', api);

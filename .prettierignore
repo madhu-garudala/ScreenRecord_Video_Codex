@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-electron/
+.packaging/
+release/
+package-lock.json
+*.icns
+*.tar.gz

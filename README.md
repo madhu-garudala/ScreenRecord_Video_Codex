@@ -23,11 +23,12 @@ No `.env` file is needed. Choose a screen or window, leave **Microphone** set to
 
 macOS may ask for screen capture access. If the source list is empty or recording is blocked, allow the app that appears in **System Settings → Privacy & Security → Screen & System Audio Recording**, then restart it. Development runs may appear as Electron or the launching terminal. Enable microphone access only if you want to record your voice.
 
-The development app uses `~/Library/Application Support/onetake-dev` for its profile. The packaged app keeps `~/Library/Application Support/local-loom` for compatibility with older settings; Google may ask you to reconnect after the rename. You can run both without sharing a live browser profile.
+The development app uses `~/Library/Application Support/onetake-dev` for its profile. The packaged app uses `~/Library/Application Support/OneTake`. On first launch, existing settings from the previous app name are migrated automatically, including the encrypted Google token. You can run development and packaged builds without sharing a live browser profile.
 
 ## Build the macOS app
 
 ```sh
+npm run lint
 npm test
 npm run package:mac
 open "release/OneTake-darwin-$(node -p 'process.arch')/OneTake.app"
@@ -37,7 +38,7 @@ open "release/OneTake-darwin-$(node -p 'process.arch')/OneTake.app"
 
 The clean install and package flow has been verified on Apple Silicon. The Intel (`x64`) path is configured but has not been run on an Intel Mac yet.
 
-The packaged app has bundle ID `com.madhugarudala.onetake`. macOS treats it separately from development Electron and the former Local Loom app, so grant screen and microphone permissions again if prompted. The old Local Loom permission entry may remain in System Settings.
+The packaged app has bundle ID `com.madhugarudala.onetake`. macOS treats it separately from development Electron and earlier builds, so grant screen and microphone permissions again if prompted. An earlier permission entry may remain in System Settings.
 
 ## Optional Google Drive setup
 
@@ -48,7 +49,7 @@ The Drive flow requires a Google Cloud project with the Drive API enabled and a 
 3. Configure **Google Auth Platform** or **OAuth consent screen**. Use your app name and support email. For a personal account, choose External and add your Google account as a test user while the app is in Testing. Configure `https://www.googleapis.com/auth/drive.file` if the console requests scopes.
 4. Under **Clients** or **Credentials**, create an **OAuth client ID** of type **Desktop app**. Download its JSON. Do not use a service account or Web application client.
 5. For development, copy `.env.example` to `.env` and set `GOOGLE_OAUTH_CLIENT_ID` to the JSON's `installed.client_id`. Restart `npm run dev`. `.env` is ignored by Git.
-6. For the packaged app, place that Desktop client JSON at `~/Library/Application Support/local-loom/google-oauth-client.json`. OneTake keeps this settings directory for compatibility with the former Local Loom app. Create the directory after first launch if needed, then restart the app. Only `installed.client_id` is read; the client secret is unused.
+6. For the packaged app, place that Desktop client JSON at `~/Library/Application Support/OneTake/google-oauth-client.json`. Create the directory after first launch if needed, then restart the app. Only `installed.client_id` is read; the client secret is unused.
 7. Click **Connect**. Google opens in your default browser and returns via a temporary localhost callback. Approve `drive.file`. Record a short video and test Private upload first. Then test Anyone with the link in a signed-out browser.
 
 The Desktop client ID is a public identifier. OAuth uses PKCE and random state. The refresh token is encrypted by Electron `safeStorage` (macOS Keychain backed) in the app's user-data directory; access tokens stay in main-process memory. Passwords and tokens are never passed to React or logged. Google's External/Testing consent status can make refresh tokens expire after seven days. See the [Desktop OAuth guide](https://developers.google.com/identity/protocols/oauth2/native-app) and [Drive quickstart](https://developers.google.com/workspace/drive/api/quickstart/nodejs).
@@ -63,7 +64,7 @@ Uploads use resumable Drive API requests with bounded 8 MiB chunks. Private skip
 
 ## Architecture
 
-React, TypeScript, and Vite run in an Electron renderer with isolation, sandboxing, and no Node integration. A narrow preload API calls main-process services. `desktopCapturer` selects a source; `getDisplayMedia` and optional `getUserMedia` feed `MediaRecorder`. Main writes ordered WebM chunks to an app-owned temporary file, serves a restricted preview URL, and uses a native Save dialog. Google OAuth, Keychain-backed token storage, Drive HTTP, clipboard, and browser opening stay in main. See [ARCHITECTURE.md](ARCHITECTURE.md) and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+React, TypeScript, and Vite run in an Electron renderer with isolation, sandboxing, and no Node integration. A narrow preload API calls main-process services. `desktopCapturer` selects a source; `getDisplayMedia` and optional `getUserMedia` feed `MediaRecorder`. Main writes ordered WebM chunks to an app-owned temporary file, serves a restricted preview URL, and uses a native Save dialog. Google OAuth, Keychain-backed token storage, Drive HTTP, clipboard, and browser opening stay in main. See [ARCHITECTURE.md](ARCHITECTURE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), and [product spec](docs/PRODUCT_SPEC.md).
 
 ## Troubleshooting
 
@@ -99,4 +100,4 @@ Optional Google Drive validation, still pending with a real account:
 
 ## Current limits
 
-WebM only. No system audio, camera bubble, editing, transcription, or automatic Drive folder. Live OAuth/Drive QA requires your Desktop client ID. Public distribution requires Apple signing credentials.
+WebM only. MediaRecorder does not add duration/cue metadata, so seeking can be unreliable and some players show an unknown duration. QuickTime may not open WebM. No system audio, camera bubble, editing, transcription, or automatic Drive folder. Live OAuth/Drive QA requires your Desktop client ID. Public distribution requires Apple signing credentials.

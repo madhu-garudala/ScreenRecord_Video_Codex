@@ -4,7 +4,6 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  DriveUploadError,
   DRIVE_UPLOAD_CHUNK_BYTES,
   GoogleDriveService,
   isValidDriveWebViewLink,
@@ -35,7 +34,7 @@ function metadata(name, bytes = 10) {
 }
 
 async function createRecording(t, bytes = Buffer.from('0123456789')) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'local-loom-drive-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'onetake-drive-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const filePath = path.join(directory, 'temporary.webm');
   await writeFile(filePath, bytes);

@@ -5,7 +5,7 @@ import path from 'node:path';
 
 export const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
 export const MAX_QUEUED_CHUNKS = 4;
-export const PREVIEW_SCHEME = 'local-loom';
+export const PREVIEW_SCHEME = 'onetake';
 
 interface ActiveRecording {
   id: string;
@@ -30,7 +30,7 @@ class RecordingStore {
   private finalized = new Map<string, FinalizedRecording>();
 
   async cleanupOrphanedFiles(): Promise<void> {
-    const directory = path.join(app.getPath('temp'), 'Local Loom');
+    const directory = path.join(app.getPath('temp'), 'OneTake');
     let entries;
     try {
       entries = await readdir(directory, { withFileTypes: true });
@@ -48,7 +48,7 @@ class RecordingStore {
   async begin(): Promise<string> {
     if (this.active) throw new Error('A recording is already active.');
 
-    const directory = path.join(app.getPath('temp'), 'Local Loom');
+    const directory = path.join(app.getPath('temp'), 'OneTake');
     await mkdir(directory, { recursive: true, mode: 0o700 });
     const id = randomUUID();
     const filePath = path.join(directory, `${id}.webm`);

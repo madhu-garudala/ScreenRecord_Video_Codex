@@ -1,6 +1,6 @@
 # Product specification
 
-This describes the intended product. For verified setup steps and the current Google Drive testing status, see [README.md](README.md).
+This describes the intended product. For verified setup steps and the current Google Drive testing status, see [README.md](../README.md).
 
 ## Goal and user
 
