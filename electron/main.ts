@@ -39,6 +39,7 @@ import type { DriveLinkActionResult, DriveShareResult, DriveUploadProgress, Driv
 import { DriveShareError, DriveUploadError, GoogleDriveService, isValidDriveWebViewLink } from './googleDriveService';
 import { migrateUserDataDirectory } from './userDataMigration';
 import { createCaptureCleanup } from './captureCleanup';
+import { isDisplayCapturePermitted } from './capturePermission';
 import type { MicrophonePermissionResult, MicrophonePermissionStatus } from '../shared/microphoneTypes';
 
 const currentDirectory = __dirname;
@@ -552,7 +553,7 @@ function installMediaPermissionHandlers(): void {
       !isAllowedRendererUrl(details.requestingUrl ?? '')
     ) return false;
 
-    if (permission === 'display-capture') return activeCapture?.state === 'awaiting-stream';
+    if (permission === 'display-capture') return isDisplayCapturePermitted(activeCapture?.state ?? null);
     if (permission === 'media') {
       return details.mediaType === 'audio' && readMicrophonePermission() === 'granted';
     }
@@ -570,7 +571,7 @@ function installMediaPermissionHandlers(): void {
     }
 
     if (permission === 'display-capture') {
-      callback(activeCapture?.state === 'awaiting-stream');
+      callback(isDisplayCapturePermitted(activeCapture?.state ?? null));
       return;
     }
     if (permission === 'media') {

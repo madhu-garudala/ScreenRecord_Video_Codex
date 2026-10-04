@@ -40,7 +40,7 @@ open "$HOME/Applications/OneTake.app"
 
 The clean install and package flow has been verified on Apple Silicon. The Intel (`x64`) path is configured but has not been run on an Intel Mac yet.
 
-The packaged app has bundle ID `com.madhugarudala.onetake`. macOS treats it separately from development Electron and earlier builds, so grant screen and microphone permissions again if prompted. An earlier permission entry may remain in System Settings.
+The packaged app has bundle ID `com.madhugarudala.onetake`. macOS treats it separately from development Electron and earlier builds, so grant screen and microphone permissions again if prompted. An earlier permission entry may remain in System Settings. Local packages use ad hoc signing; a rebuild changes the app's signature, so macOS may require you to switch OneTake's screen permission off and on again before testing the new build.
 
 If OneTake is missing from **System Settings → Privacy & Security → Screen & System Audio Recording**, click **+** under the app list, authenticate with Touch ID or your Mac password, and select `~/Applications/OneTake.app`. In the file picker, press **Command-Shift-G** and paste that path if the app is hard to find. Turn on its switch, then quit and reopen OneTake.
 
